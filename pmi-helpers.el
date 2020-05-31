@@ -1,5 +1,4 @@
 ;;; serialize
-
 (defun pmi--serialize (filename data)
   (with-temp-file filename
     (erase-buffer) ; clean buffer (contains default newline)
@@ -35,5 +34,9 @@
 (defun pmi--log-debug (msgtpl &rest args) (pmi--log "D" msgtpl args))
 (defun pmi--log-info (msgtpl &rest args) (pmi--log "I" msgtpl args))
 
+;;; path handling
+(defun pmi--folder-name (folder)
+  (file-name-nondirectory (directory-file-name folder))
+)
 
 (provide 'pmi-helpers)
