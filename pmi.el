@@ -33,7 +33,7 @@
 
 (require 'pmi-helpers)
 (require 'pmi-data)
-(require 'pmi-buildsystemtype)
+(require 'pmi-buildsystem)
 
 ;; ################ CONFIGURATION ################
 
