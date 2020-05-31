@@ -21,11 +21,18 @@
            for value = (gethash key map)
            for matchresult = (funcall findfn key value)
            until matchresult
-           finally return (if matchresult key nil)
-  )
-)
+           finally return (if matchresult key nil)))
 (defun pmi--hashtable-find-value (map findfn) (cdr (pmi--hashtable-find map findfn)))
 (defun pmi--hashtable-find-key (map findfn) (car (pmi--hashtable-find map findfn)))
+
+(defun pmi--hashtable-filtermap (map mapfn)
+  (let ((resultseq nil))
+    (cl-loop for key in (hash-table-keys map)
+             for value = (gethash key map)
+             for mapresult = (funcall mapfn key value)
+             do (when mapresult (push mapresult resultseq))
+             finally return resultseq)))
+
 
 ;;; pmi-log
 (defun pmi--log (loglevel msgtpl args)

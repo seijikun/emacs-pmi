@@ -54,7 +54,7 @@
 
 
 (defcustom pmi-buildsystem-autoload-list
-  '(ccls pmi-buildsystem-cmake)
+  '(pmi-buildsystem-cmake)
   "List of the buildsystem implementations to be automatically required."
   :group 'pmi
   :type '(repeat symbol))
@@ -127,7 +127,6 @@
 (defun pmi--load-buildsystems ()
   (pmi--log-debug "Autoloading buildsystems %s" pmi-buildsystem-autoload-list)
   (seq-do (lambda (package)
-            ;; loading client is slow and `lsp' can be called repeatedly
             (unless (featurep package)
               (require package nil t)
               (pmi--log-debug "Loading buildsystem implementation: %s" package)))
@@ -157,42 +156,50 @@
                  for project = (pmi--project-load projectroot)
                  do (puthash projectroot project pmi--var-projects)
                  do (puthash projectroot 0 pmi--var-projects-open-file-cnts)))
-      (progn ; else
-        (pmi--log-debug "No workspace found, starting empty"))
-)))
+      ; else
+      (pmi--log-debug "No workspace found, starting empty"))))
+
 (defun pmi--workspace-save ()
   (pmi--log-debug "Save workspace")
   (let* ((projectroots (hash-table-keys pmi--var-projects)))
-    (pmi--serialize pmi-conf-workspace-filepath projectroots)
-  ))
+    (pmi--serialize pmi-conf-workspace-filepath projectroots)))
+
 (defun pmi--projectsave-folder (project-or-root)
   (let* ((projectroot project-or-root))
     (when (pmi-data-project-p project-or-root)
       (setq projectroot (pmi-data-project-rootpath project-or-root)))
     (file-name-as-directory (concat projectroot pmi-conf-projectsave-foldername))))
+
 (defun pmi--projectsave-filepath (project-or-root)
   (concat (pmi--projectsave-folder project-or-root) pmi-conf-projectsave-filename))
+
 (defun pmi--project-load (projectroot)
   (let ((projectfile (pmi--projectsave-filepath projectroot)))
     (pmi--deserialize projectfile)))
+
 (defun pmi--project-save (project)
   (pmi--log-debug "Saving project: %s" (pmi--projectsave-filepath project))
   ; ensure the proejct's projectsave-folder is created within projectroot
   (make-directory (pmi--projectsave-folder project) t)
   (pmi--serialize (pmi--projectsave-filepath project) project))
-(defun pmi--detect-projecttype (projectroot)
-  ; TODO: implement detection
-  "cmake")
+
+(defun pmi--detect-projecttypes (projectroot)
+  "Get a list of buildsystems that think they could handle the project in the given PROJECTROOT."
+  (pmi--hashtable-filtermap pmi--var-buildsystems (lambda (buildsystem-name buildsystem)
+                                                    (when (funcall (pmi-fntbl-buildsystem-directory-p buildsystem) projectroot)
+                                                      buildsystem-name))))
+
 (defun pmi--add-project (projectroot)
   (when (not (gethash projectroot pmi--var-projects))
-    (let* ((projecttype (pmi--detect-projecttype projectroot))
-           (project (pmi-data-project-new projectroot projecttype)))
-      (pmi--log-debug "Adding project: %s" projectroot)
-      (puthash projectroot project pmi--var-projects)
-      (puthash projectroot 0 pmi--var-projects-open-file-cnts)
-      (pmi--project-save project)
-      (pmi--workspace-save)
-    )))
+    (let ((detected-projecttypes (pmi--detect-projecttypes projectroot)))
+      (when (not detected-projecttypes) (error "No supported projecttypes / buildsystems found"))
+      (let* ((projecttype (completing-read "Buildsystem-Type: " detected-projecttypes))
+             (project (pmi-data-project-new projectroot projecttype)))
+        (pmi--log-debug "Adding project: %s" projectroot)
+        (puthash projectroot project pmi--var-projects)
+        (puthash projectroot 0 pmi--var-projects-open-file-cnts)
+        (pmi--project-save project)
+        (pmi--workspace-save)))))
 
 ;; ################# Event-Handlers #################
 ;; see: https://www.gnu.org/software/emacs/manual/html_node/elisp/Standard-Hooks.html#Standard-Hooks
