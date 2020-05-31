@@ -1,31 +1,87 @@
+;;; pmi.el --- Manage and navigate projects in Emacs easily -*- lexical-binding: t -*-
+
+;; Copyright © 2020-2020 Markus Ebner <info@ebner-markus.de>
+
+;; Author: Markus Ebner <info@ebner-markus.de>
+;; URL: https://github.com/seijikun/emacs-pmi
+;; Keywords: project, convenience
+;; Version: 0.1
+;; Package-Requires: ((emacs "25.1") (pkg-info "0.4"))
+
+;; This file is NOT part of GNU Emacs.
+
+;; This program is free software; you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation; either version 3, or (at your option)
+;; any later version.
+;;
+;; This program is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU General Public License for more details.
+;;
+;; You should have received a copy of the GNU General Public License
+;; along with GNU Emacs; see the file COPYING.  If not, write to the
+;; Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+;; Boston, MA 02110-1301, USA.
+
+;;; Commentary:
+;;
+;; TODO: Some commentary
+;;
+;;; Code:
+
 (require 'pmi-helpers)
 (require 'pmi-data)
 (require 'pmi-buildsystemtype)
 
 ;; ################ CONFIGURATION ################
 
-(defcustom pmi-conf-workspace-file (expand-file-name (locate-user-emacs-file ".pmi-workspace"))
-  "Where to persist the workspace"
+(defcustom pmi-conf-workspace-filepath (expand-file-name (locate-user-emacs-file ".pmi-workspace"))
+  "Where to persist the workspace."
   :group 'pmi
   :type 'file)
   
-(defcustom pmi-conf-project-folder (expand-file-name (locate-user-emacs-file ".emacs-pmi"))
-  "Foldername that is used within each project-root, to store PMI data"
+(defcustom pmi-conf-projectsave-foldername ".emacs-pmi"
+  "Foldername that is used within each project-root, to store PMI data."
   :group 'pmi
-  :type 'file)
+  :type 'string)
+
+(defcustom pmi-conf-projectsave-filename "project.el"
+  "Filename of the file, that will store a pmi project within a projects PMI folder."
+  :group 'pmi
+  :type 'string)
 
 
 ;; ################# GLOBALS #################
 
-;; hashmap of open projects (name => project)
-(defvar pmi--var-projects)
-
-;; mapping between project name and cnt of open files (name => int)
-(defvar pmi--var-projects-open-file-cnts)
-
+;; hashmap of open projects (projectroot => project)
+(eval-when-compile
+  ;; hashmap of known buildsystems (name => buildsystem struct)
+  (defvar pmi--var-buildsystems)
+  ;; hashmap of open projects (projectroot => project)
+  (defvar pmi--var-projects)
+  ;; mapping between project projectroot and cnt of open files (name => int)
+  (defvar pmi--var-projects-open-file-cnts)
+)
 
 ;; ################# API-Surface #################
+;; #### Buildsystem
 
+(defun pmi-register-buildsystem (name fntbl)
+  "Register a buildsystem with name (as NAME), and the implemented function table data-fntbl-buildsystem (as FNTBL)."
+  (puthash name fntbl pmi--var-buildsystems))
+
+;; ############### User-API Surface ##############
+
+;; #### PROJECT
+(defun pmi-add-project ()
+  "Add an existing projectroot as new project to the PMI workspace."
+	(interactive)
+	(let* ((projectroot (read-directory-name "Projectroot: " nil "" t)))
+      ; add project
+      (pmi--add-project projectroot)
+	))
 (defun pmi-current-project ())
 (defun pmi-current-project-type ())
 
@@ -46,7 +102,7 @@
 	(add-hook 'after-load-functions #'pmi--evt-file-opened)
 	(add-hook 'kill-buffer-hook #'pmi--evt-file-closed)
 	
-	(pmi--load-workspace)
+	(pmi--workspace-load)
 	
 	;TODO: load workspace
 	;TODO: populate pmi--var-projects-open-file-cnts with zeros
@@ -57,30 +113,51 @@
 	(remove-hook 'kill-buffer-hook #'pmi--evt-file-closed)
 )
 
-(defun pmi--load-workspace ()
-  (let (projectroots (pmi--deserialize pmi-conf-workspace-file) )
+(defun pmi--workspace-load ()
+  (let ((projectroots (pmi--deserialize pmi-conf-workspace-filepath)))
     (setq pmi--var-projects (make-hash-table :test 'equal))
     (if projectroots
       (progn ; then
         (cl-loop for projectroot in projectroots
-                 for project = (pmi--load-project projectroot)
-                 do (puthash (pmi-data-project-name project) project pmi--var-projects)
-        )
-        (print pmi--var-projects) ; TODO: remove (& test)
-      )
+                 for project = (pmi--project-load projectroot)
+                 do (puthash (pmi-data-project-rootpath project) project pmi--var-projects)
+        ))
       (progn ; else
         (pmi--log-debug "No workspace found, starting empty")
       )
-))
-)
-(defun pmi--load-project (projectroot)
-  (let (projectfile (concat projectroot "/" pmi-conf-project-folder "/project.el"))
-    (pmi--deserialize projectfile)
-  )
-)
-(defun pmi--save-workspace ()
-	; TODO
-)
+)))
+(defun pmi--workspace-save ()
+  (pmi--log-debug "Save workspace")
+  (let* ((projectroots (hash-table-keys pmi--var-projects)))
+    (pmi--serialize pmi-conf-workspace-filepath projectroots)
+  ))
+(defun pmi--projectsave-folder (project-or-root)
+  (let* ((projectroot project-or-root))
+    (when (pmi-data-project-p project-or-root)
+      (setq projectroot (pmi-data-project-rootpath project-or-root)))
+    (file-name-as-directory (concat projectroot pmi-conf-projectsave-foldername))))
+(defun pmi--projectsave-filepath (project-or-root)
+  (concat (pmi--projectsave-folder project-or-root) pmi-conf-projectsave-filename))
+(defun pmi--project-load (projectroot)
+  (let ((projectfile (pmi--projectsave-filepath projectroot)))
+    (pmi--deserialize projectfile)))
+(defun pmi--project-save (project)
+  (pmi--log-debug "Saving project: %s" (pmi--projectsave-filepath project))
+  ; ensure the proejct's projectsave-folder is created within projectroot
+  (make-directory (pmi--projectsave-folder project) t)
+  (pmi--serialize (pmi--projectsave-filepath project) project))
+(defun pmi--detect-projecttype (projectroot)
+  ; TODO: implement detection
+  "cmake")
+(defun pmi--add-project (projectroot)
+  (when (not (gethash projectroot pmi--var-projects))
+    (let* ((projecttype (pmi--detect-projecttype projectroot))
+           (project (pmi-data-project-new projectroot projecttype)))
+      (pmi--log-debug "Adding project: %s" projectroot)
+      (puthash projectroot project pmi--var-projects)
+      (pmi--project-save project)
+      (pmi--workspace-save)
+    )))
 
 ;; ################# Event-Handlers #################
 ;; see: https://www.gnu.org/software/emacs/manual/html_node/elisp/Standard-Hooks.html#Standard-Hooks
