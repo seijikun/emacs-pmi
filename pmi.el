@@ -71,6 +71,7 @@
   ;; mapping between project projectroot and cnt of open files (name => int)
   (defvar pmi--var-projects-open-file-cnts))
 (setq pmi--var-buildsystems (make-hash-table :test 'equal))
+(setq pmi--var-projects-open-file-cnts (make-hash-table :test 'equal))
 
 ;; ################# API-Surface #################
 ;; #### Buildsystem
@@ -139,9 +140,7 @@
 	(add-hook 'kill-buffer-hook #'pmi--evt-file-closed)
 
   (pmi--load-buildsystems)
-	(pmi--workspace-load)
-  ;TODO: populate pmi--var-projects-open-file-cnts with zeros
-  )
+	(pmi--workspace-load))
 
 (defun pmi--deinit ()
 	(pmi--log-info "Deinitializing")
@@ -156,11 +155,10 @@
       (progn ; then
         (cl-loop for projectroot in projectroots
                  for project = (pmi--project-load projectroot)
-                 do (puthash (pmi-data-project-rootpath project) project pmi--var-projects)
-        ))
+                 do (puthash projectroot project pmi--var-projects)
+                 do (puthash projectroot 0 pmi--var-projects-open-file-cnts)))
       (progn ; else
-        (pmi--log-debug "No workspace found, starting empty")
-      )
+        (pmi--log-debug "No workspace found, starting empty"))
 )))
 (defun pmi--workspace-save ()
   (pmi--log-debug "Save workspace")
