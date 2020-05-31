@@ -36,4 +36,7 @@
 (defun pmi--log-info (msgtpl &rest args) (pmi--log "I" msgtpl args))
 
 
+;;; string-manipulation
+(defun pmi--strjoin (sep lst) (mapconcat 'identity lst sep))
+
 (provide 'pmi-helpers)
