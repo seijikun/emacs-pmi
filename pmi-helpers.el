@@ -39,4 +39,7 @@
   (file-name-nondirectory (directory-file-name folder))
 )
 
+;;; string-manipulation
+(defun pmi--strjoin (sep lst) (mapconcat 'identity lst sep))
+
 (provide 'pmi-helpers)
