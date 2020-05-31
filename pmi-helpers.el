@@ -39,6 +39,11 @@
   (file-name-nondirectory (directory-file-name folder))
 )
 
+(defun pmi--buffer-directory-path (&optional buffer-or-name)
+  "Return the directory-path associated with BUFFER or nil."
+  (when (null buffer-or-name) (setq buffer-or-name (current-buffer)))
+  (with-current-buffer buffer-or-name default-directory))
+
 ;;; string-manipulation
 (defun pmi--strjoin (sep lst) (mapconcat 'identity lst sep))
 

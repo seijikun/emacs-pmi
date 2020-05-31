@@ -87,10 +87,31 @@
 	(interactive)
 	(let* ((projectroot (read-directory-name "Projectroot: " nil "" t)))
       ; add project
-      (pmi--add-project projectroot)
-	))
-(defun pmi-current-project ())
-(defun pmi-current-project-type ())
+      (pmi--add-project projectroot)))
+
+(defun pmi-project-root ()
+  "Get projectroot directory of the project, to which the current file belongs."
+  (let* ((dir (pmi--buffer-directory-path))
+         (projectroots (hash-table-keys pmi--var-projects))
+         (best-match nil)
+         (best-match-len 0))
+
+    (cl-loop for projectroot in projectroots
+             for match-len = (length projectroot)
+             do (when (and (string-prefix-p projectroot dir) (> match-len best-match-len))
+                  (setq best-match projectroot)
+                  (setq best-match-len match-len))
+             finally return best-match)))
+
+(defun pmi-project-type ()
+  "Get type (buildsystem) of the project, to which the current file belongs."
+  (let* ((projectroot (pmi-project-root)))
+    (when projectroot (pmi-data-project-type (gethash projectroot pmi--var-projects)))))
+
+(defun pmi-project-info ()
+  "Print some information about the project, to which the curent file belongs."
+  (interactive)
+  (message "Project-Root: %s | Project-Type: %s" (pmi-project-root) (pmi-project-type)))
 
 (defun pmi-project-add-configuration ())		; add new configuration to project
 (defun pmi-project-select-configuration ())		; switch current active configuration
@@ -100,7 +121,7 @@
 (defun pmi-project-build ())
 (defun pmi-project-run ())
 
-
+(file-name-directory (buffer-name (current-buffer)))
 ;; ################# Internal-API #################
 (defun pmi--load-buildsystems ()
   (pmi--log-debug "Autoloading buildsystems %s" pmi-buildsystem-autoload-list)
