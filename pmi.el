@@ -189,6 +189,7 @@
            (project (pmi-data-project-new projectroot projecttype)))
       (pmi--log-debug "Adding project: %s" projectroot)
       (puthash projectroot project pmi--var-projects)
+      (puthash projectroot 0 pmi--var-projects-open-file-cnts)
       (pmi--project-save project)
       (pmi--workspace-save)
     )))
