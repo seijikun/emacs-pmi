@@ -9,6 +9,4 @@
   directory-p ;; (directory-path)
   )
 
-(require-relative "buildsystems/pmi-buildsystem-cmake.el")
-
 (provide 'pmi-buildsystem)

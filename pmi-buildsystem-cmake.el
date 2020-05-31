@@ -39,7 +39,7 @@
   )
 
 (defun pmi-buildsystem-cmake-add-configuration (project configuration)
-  ""
+  "Show promts for the CONFIGURATION Settings of PROJECT."
   (let* ((settings (pmi-data-configuration-settings configuration))
          (new-settings (if (pmi-buildsystem-cmake-settings-p settings) settings (pmi-data-cmake-settings-new)))
          (variables (read-string "Cmake variables: " (pmi-buildsystem-cmake-settings-variables new-settings)))
@@ -51,7 +51,7 @@
     (setf (pmi-data-configuration-settings configuration) new-settings)))
 
 (defun pmi-buildsystem-cmake-init (project configuration) ; TODO: use buffer from parameter
-  ""
+  "Initialize the PROJECT with the given CONFIGURATION."
   (let* ((projectRoot (pmi-data-project-rootpath project))
          (buildFolder (pmi-data-configuration-buildfolder configuration))
          (settings (pmi-data-configuration-settings configuration))
@@ -63,7 +63,7 @@
   ))
 
 (defun pmi-buildsystem-cmake-build (project configuration)
-  ""
+  "Build the PROJECT with the given CONFIGURATION."
   (interactive)
   (let* ((default-directory (pmi-data-configuration-buildfolder configuration))
          (settings (pmi-data-configuration-settings configuration))
@@ -72,7 +72,7 @@
     (compile compile-command)))
 
 (defun pmi-buildsystem-cmake-directory-p (directory-path)
-  ""
+  "Check existence of CMakeLists.txt in directory at DIRECTORY-PATH."
     (and
      (file-exists-p directory-path)
      (file-directory-p directory-path)
@@ -84,6 +84,8 @@
 (setf (pmi-fntbl-buildsystem-init-configuration pmi-fntbl-buildsystem-cmake) 'pmi-buildsystem-cmake-init)
 (setf (pmi-fntbl-buildsystem-build-configuration pmi-fntbl-buildsystem-cmake) 'pmi-buildsystem-cmake-build)
 (setf (pmi-fntbl-buildsystem-directory-p pmi-fntbl-buildsystem-cmake) 'pmi-buildsystem-cmake-directory-p)
+
+(pmi-buildsystem-register "cmake" pmi-fntbl-buildsystem-cmake)
 
 (provide 'pmi-buildsystem-cmake)
 ;;; pmi-buildsystem-type-cmake.el ends here

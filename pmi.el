@@ -53,6 +53,13 @@
   :type 'string)
 
 
+(defcustom pmi-buildsystem-autoload-list
+  '(ccls pmi-buildsystem-cmake)
+  "List of the buildsystem implementations to be automatically required."
+  :group 'pmi
+  :type '(repeat symbol))
+
+
 ;; ################# GLOBALS #################
 
 ;; hashmap of open projects (projectroot => project)
@@ -62,13 +69,13 @@
   ;; hashmap of open projects (projectroot => project)
   (defvar pmi--var-projects)
   ;; mapping between project projectroot and cnt of open files (name => int)
-  (defvar pmi--var-projects-open-file-cnts)
-)
+  (defvar pmi--var-projects-open-file-cnts))
+(setq pmi--var-buildsystems (make-hash-table :test 'equal))
 
 ;; ################# API-Surface #################
 ;; #### Buildsystem
 
-(defun pmi-register-buildsystem (name fntbl)
+(defun pmi-buildsystem-register (name fntbl)
   "Register a buildsystem with name (as NAME), and the implemented function table data-fntbl-buildsystem (as FNTBL)."
   (puthash name fntbl pmi--var-buildsystems))
 
@@ -95,18 +102,26 @@
 
 
 ;; ################# Internal-API #################
+(defun pmi--load-buildsystems ()
+  (pmi--log-debug "Autoloading buildsystems %s" pmi-buildsystem-autoload-list)
+  (seq-do (lambda (package)
+            ;; loading client is slow and `lsp' can be called repeatedly
+            (unless (featurep package)
+              (require package nil t)
+              (pmi--log-debug "Loading buildsystem implementation: %s" package)))
+          pmi-buildsystem-autoload-list))
 
 (defun pmi--init ()
 	(pmi--log-info "Initializing")
-	; register event handlers
+  ; register event handlers
 	(add-hook 'after-load-functions #'pmi--evt-file-opened)
 	(add-hook 'kill-buffer-hook #'pmi--evt-file-closed)
-	
+
+  (pmi--load-buildsystems)
 	(pmi--workspace-load)
-	
-	;TODO: load workspace
-	;TODO: populate pmi--var-projects-open-file-cnts with zeros
-)
+  ;TODO: populate pmi--var-projects-open-file-cnts with zeros
+  )
+
 (defun pmi--deinit ()
 	(pmi--log-info "Deinitializing")
 	(remove-hook 'after-load-functions #'pmi--evt-file-opened)
