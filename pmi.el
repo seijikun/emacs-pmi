@@ -142,9 +142,31 @@
         (funcall buildsystem-add-configuration project configuration)
         (puthash configname configuration (pmi-data-project-configurations project))
         (pmi--project-save project)))))
-(defun pmi-project-select-configuration ())		; switch current active configuration
 (defun pmi-project-remove-coniguration ())		; remove configuration from project
 (defun pmi-project-configure ())				; run configure (cmake ..)
+
+(defun pmi-project-select-configuration ()
+  "Switch current active configuration."
+  (interactive)
+  (let* ((project (pmi-project))
+         (configs (pmi-data-project-configurations project))
+         (config-key (completing-read "Choose configuration:" (hash-table-keys configs)))
+         (chosen-config (gethash config-key configs)))
+    (setf (pmi-data-project-active-configuration project) chosen-config)))
+
+(defun pmi-project-configure ())				; run configure (cmake ..)
+(defun pmi-project-remove-coniguration ())		; remove configuration from project
+
+(defun pmi-project-select-runconfiguration ()
+  "Select a runconfiguration for the active configuration of the active project."
+  (interactive)
+  (let* ((project (pmi-project))
+         (configuration (pmi-data-project-active-configuration project))
+         (runconfigs (pmi-data-configuration-runconfigurations configuration))
+         (runconfig-key (completing-read "Choose configuration:" (hash-table-keys runconfigs)))
+         (chosen-runconfig (gethash runconfig-key runconfigs)))
+    (setf (pmi-data-configuration-active-runconfiguration configuration) chosen-runconfig)))
+
 (defun pmi-project-build ())
 (defun pmi-project-run ())
 
