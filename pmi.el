@@ -114,6 +114,11 @@
   (let* ((projectroot (pmi-project-root)))
     (when projectroot (pmi-data-project-type (gethash projectroot pmi--var-projects)))))
 
+(defun pmi-project-buildsystem ()
+  "Get the buildsystem functiontable of the currently active project."
+  (let* ((projecttype (pmi-project-type)))
+    (gethash projecttype pmi--var-buildsystems)))
+
 (defun pmi-project-info ()
   "Print some information about the project, to which the curent file belongs."
   (interactive)
@@ -123,9 +128,8 @@
   "Open the add-configuration wizard for the currently open project."
   (interactive)
   (let* ((project (pmi-project))
-         (projecttype (pmi-project-type))
+         (projectbuildsystem (pmi-project-buildsystem))
          (configname "")
-         (projectbuildsystem (gethash projecttype pmi--var-buildsystems))
          (buildsystem-add-configuration (pmi-fntbl-buildsystem-add-configuration projectbuildsystem)))
     (when buildsystem-add-configuration
       ; ask user for a configuration name, until he picks one that's not yet in use.
@@ -139,9 +143,8 @@
         (puthash configname configuration (pmi-data-project-configurations project))
         (pmi--project-save project)))))
 (defun pmi-project-select-configuration ())		; switch current active configuration
-(defun pmi-project-configure ())				; run configure (cmake ..)
 (defun pmi-project-remove-coniguration ())		; remove configuration from project
-
+(defun pmi-project-configure ())				; run configure (cmake ..)
 (defun pmi-project-build ())
 (defun pmi-project-run ())
 
