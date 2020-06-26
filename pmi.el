@@ -104,6 +104,11 @@
                   (setq best-match-len match-len))
              finally return best-match)))
 
+(defun pmi-project ()
+  "Get the currently active project."
+  (let* ((projectroot (pmi-project-root)))
+    (gethash projectroot pmi--var-projects)))
+
 (defun pmi-project-type ()
   "Get type (buildsystem) of the project, to which the current file belongs."
   (let* ((projectroot (pmi-project-root)))
@@ -114,7 +119,25 @@
   (interactive)
   (message "Project-Root: %s | Project-Type: %s" (pmi-project-root) (pmi-project-type)))
 
-(defun pmi-project-add-configuration ())		; add new configuration to project
+(defun pmi-project-add-configuration ()
+  "Open the add-configuration wizard for the currently open project."
+  (interactive)
+  (let* ((project (pmi-project))
+         (projecttype (pmi-project-type))
+         (configname "")
+         (projectbuildsystem (gethash projecttype pmi--var-buildsystems))
+         (buildsystem-add-configuration (pmi-fntbl-buildsystem-add-configuration projectbuildsystem)))
+    (when buildsystem-add-configuration
+      ; ask user for a configuration name, until he picks one that's not yet in use.
+      (loop (setq configname (read-string "New Configuration Name: "))
+            (if (or (not (gethash configname (pmi-data-project-configurations project)))
+                    (y-or-n-p "A configuration with this name already exists. Overwrite? "))
+                (return configname)))
+      (let* ((buildfolder (read-directory-name "New Buildfolder: " nil nil t))
+             (configuration (pmi-data-configuration-new configname buildfolder)))
+        (funcall buildsystem-add-configuration project configuration)
+        (puthash configname configuration (pmi-data-project-configurations project))
+        (pmi--project-save project)))))
 (defun pmi-project-select-configuration ())		; switch current active configuration
 (defun pmi-project-configure ())				; run configure (cmake ..)
 (defun pmi-project-remove-coniguration ())		; remove configuration from project
