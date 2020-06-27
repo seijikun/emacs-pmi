@@ -128,6 +128,7 @@
   "Open the add-configuration wizard for the currently open project."
   (interactive)
   (let* ((project (pmi-project))
+         (configurations (pmi-data-project-configurations project))
          (projectbuildsystem (pmi-project-buildsystem))
          (configname "")
          (buildsystem-add-configuration (pmi-fntbl-buildsystem-add-configuration projectbuildsystem)))
@@ -140,9 +141,26 @@
       (let* ((buildfolder (read-directory-name "New Buildfolder: " nil nil t))
              (configuration (pmi-data-configuration-new configname buildfolder)))
         (funcall buildsystem-add-configuration project configuration)
+        (when (= (hash-table-count configurations) 0)
+          (pmi--log-info "Changing default configuration to: %s" configname)
+          (setf (pmi-data-project-active-configuration project) configname))
         (puthash configname configuration (pmi-data-project-configurations project))
         (pmi--project-save project)))))
-(defun pmi-project-remove-coniguration ())		; remove configuration from project
+
+(defun pmi-project-remove-configuration ()
+  "Remove a configuration from the current project."
+  (interactive)
+  (let* ((project (pmi-project))
+         (active-config (pmi-data-project-active-configuration project))
+         (configurations (pmi-data-project-configurations project))
+         (confignames (hash-table-keys configurations))
+         (chosen-config (completing-read "Configuration to remove: " confignames nil t)))
+    (pmi--log-info "Removing configuration: %s" configname)
+    (remhash chosen-config configurations)
+    (setf (pmi-data-project-active-configuration project) nil)
+    (when (equal active-config chosen-config)
+      (pmi-project-select-configuration))))
+
 (defun pmi-project-configure ())				; run configure (cmake ..)
 
 (defun pmi-project-select-configuration ()
@@ -155,7 +173,6 @@
     (setf (pmi-data-project-active-configuration project) chosen-config)))
 
 (defun pmi-project-configure ())				; run configure (cmake ..)
-(defun pmi-project-remove-coniguration ())		; remove configuration from project
 
 (defun pmi-project-select-runconfiguration ()
   "Select a runconfiguration for the active configuration of the active project."
