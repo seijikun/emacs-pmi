@@ -1,20 +1,20 @@
 (cl-defstruct (pmi-data-project
                (:constructor nil) ; no default constructor
-               (:constructor pmi-data-project-new (rootpath type &optional active-configuration))
+               (:constructor pmi-data-project-new (rootpath type &optional active-config-key))
               )
   rootpath
   type
-  active-configuration
+  active-config-key
   (configurations (make-hash-table :test 'equal)))
 
 (cl-defstruct (pmi-data-configuration
                (:constructor nil) ; no default constructor
-               (:constructor pmi-data-configuration-new (name buildfolder &optional settings active-runconfiguration))
+               (:constructor pmi-data-configuration-new (name buildfolder &optional settings active-runconfig-key))
                )
   name
   buildfolder
   settings
-  active-runconfiguration
+  active-runconfig-key
   (runconfigurations (make-hash-table :test 'equal)))
 
 (cl-defstruct (pmi-data-runconfiguration

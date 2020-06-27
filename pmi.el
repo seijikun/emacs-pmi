@@ -119,17 +119,17 @@
   (let* ((projecttype (pmi-project-type)))
     (gethash projecttype pmi--var-buildsystems)))
 
-(defun pmi-project-active-configuration ()
+(defun pmi-project-active-config ()
   "Get the current project's active configuration."
   (let* ((project (pmi-project))
-         (config-key (pmi-data-project-active-configuration project))
+         (config-key (pmi-data-project-active-config-key project))
          (configs (pmi-data-project-configurations project)))
     (gethash config-key configs)))
 
-(defun pmi-project-active-runconfiguration ()
+(defun pmi-project-active-runconfig ()
   "Get the current project's active runconfiguration (depends on its active configuration)."
-  (let* ((config (pmi-project-active-configuration))
-         (runconfig-key (pmi-data-configuration-active-runconfiguration config))
+  (let* ((config (pmi-project-active-config))
+         (runconfig-key (pmi-data-configuration-active-runconfig-key config))
          (runconfigs (pmi-data-configuration-runconfigurations config)))
     (gethash runconfig-key runconfigs)))
 
@@ -163,7 +163,7 @@
         (funcall buildsystem-add-configuration project configuration)
         (when (= (hash-table-count configurations) 0)
           (pmi--log-info "Changing default configuration to: %s" configname)
-          (setf (pmi-data-project-active-configuration project) configname))
+          (setf (pmi-data-project-active-config-key project) configname))
         (puthash configname configuration (pmi-data-project-configurations project))
         (pmi--project-save project)))))
 
@@ -171,13 +171,13 @@
   "Remove a configuration from the current project."
   (interactive)
   (let* ((project (pmi-project))
-         (active-config (pmi-data-project-active-configuration project))
+         (active-config (pmi-data-project-active-config-key project))
          (configurations (pmi-data-project-configurations project))
          (confignames (hash-table-keys configurations))
          (chosen-config (completing-read "Configuration to remove: " confignames nil t)))
     (pmi--log-info "Removing configuration: %s" configname)
     (remhash chosen-config configurations)
-    (setf (pmi-data-project-active-configuration project) nil)
+    (setf (pmi-data-project-active-config-key project) nil)
     (when (equal active-config chosen-config)
       (pmi-project-select-configuration))))
 
@@ -187,34 +187,34 @@
   (let* ((project (pmi-project))
          (configs (pmi-data-project-configurations project))
          (config-key (completing-read "Choose configuration:" (hash-table-keys configs))))
-    (setf (pmi-data-project-active-configuration project) config-key)))
+    (setf (pmi-data-project-active-config-key project) config-key)))
 
 (defun pmi-project-select-runconfiguration ()
   "Select a runconfiguration for the active configuration of the active project."
   (interactive)
   (let* ((project (pmi-project))
-         (configuration (pmi-data-project-active-configuration project))
+         (configuration (pmi-data-project-active-config-key project))
          (runconfigs (pmi-data-configuration-runconfigurations configuration))
          (runconfig-key (completing-read "Choose configuration:" (hash-table-keys runconfigs))))
-    (setf (pmi-data-configuration-active-runconfiguration configuration) runconfig-key)))
+    (setf (pmi-data-configuration-active-runconfig-key configuration) runconfig-key)))
 
 (defun pmi-project-configure ()
   "Run the configure step for the active configuration of the current project. (Many modern buildsystems don't have one though)."
   (interactive)
   (let* ((project (pmi-project))
          (buildsystem (pmi-project-buildsystem))
-         (active-configuration (pmi-project-active-configuration)))
+         (active-config (pmi-project-active-config)))
     (pmi--log-info "Launching Configure-Step for active project.")
-    (funcall (pmi-fntbl-buildsystem-init-configuration buildsystem) project active-configuration)))
+    (funcall (pmi-fntbl-buildsystem-init-configuration buildsystem) project active-config)))
 
 (defun pmi-project-build ()
   "Build the active configuration of the current project."
   (interactive)
   (let* ((project (pmi-project))
          (buildsystem (pmi-project-buildsystem))
-         (active-configuration (pmi-project-active-configuration)))
+         (active-config (pmi-project-active-config)))
     (pmi--log-info "Launching Build-Step for active project.")
-    (funcall (pmi-fntbl-buildsystem-build-configuration buildsystem) project active-configuration)))
+    (funcall (pmi-fntbl-buildsystem-build-configuration buildsystem) project active-config)))
 
 (defun pmi-project-run ()
   "Run the active configuration's selected runconfiguration of the current project."
