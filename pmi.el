@@ -122,13 +122,16 @@
 (defun pmi-project-active-configuration ()
   "Get the current project's active configuration."
   (let* ((project (pmi-project))
-         (active-configname (pmi-data-project-active-configuration project))
-         (configurations (pmi-data-project-configurations project)))
-    (gethash active-configname configurations)))
+         (config-key (pmi-data-project-active-configuration project))
+         (configs (pmi-data-project-configurations project)))
+    (gethash config-key configs)))
 
 (defun pmi-project-active-runconfiguration ()
   "Get the current project's active runconfiguration (depends on its active configuration)."
-  (pmi-data-configuration-active-runconfiguration (pmi-project-active-configuration)))
+  (let* ((config (pmi-project-active-configuration))
+         (runconfig-key (pmi-data-configuration-active-runconfiguration config))
+         (runconfigs (pmi-data-configuration-runconfigurations config)))
+    (gethash runconfig-key runconfigs)))
 
 (defun pmi-project-info ()
   "Print some information about the project, to which the curent file belongs."
@@ -183,9 +186,8 @@
   (interactive)
   (let* ((project (pmi-project))
          (configs (pmi-data-project-configurations project))
-         (config-key (completing-read "Choose configuration:" (hash-table-keys configs)))
-         (chosen-config (gethash config-key configs)))
-    (setf (pmi-data-project-active-configuration project) chosen-config)))
+         (config-key (completing-read "Choose configuration:" (hash-table-keys configs))))
+    (setf (pmi-data-project-active-configuration project) config-key)))
 
 (defun pmi-project-select-runconfiguration ()
   "Select a runconfiguration for the active configuration of the active project."
@@ -193,9 +195,8 @@
   (let* ((project (pmi-project))
          (configuration (pmi-data-project-active-configuration project))
          (runconfigs (pmi-data-configuration-runconfigurations configuration))
-         (runconfig-key (completing-read "Choose configuration:" (hash-table-keys runconfigs)))
-         (chosen-runconfig (gethash runconfig-key runconfigs)))
-    (setf (pmi-data-configuration-active-runconfiguration configuration) chosen-runconfig)))
+         (runconfig-key (completing-read "Choose configuration:" (hash-table-keys runconfigs))))
+    (setf (pmi-data-configuration-active-runconfiguration configuration) runconfig-key)))
 
 (defun pmi-project-configure ()
   "Run the configure step for the active configuration of the current project. (Many modern buildsystems don't have one though)."
