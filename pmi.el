@@ -135,6 +135,12 @@
   (interactive)
   (message "Project-Root: %s | Project-Type: %s" (pmi-project-root) (pmi-project-type)))
 
+(defun pmi-project-open ()
+  "Open a file of a choosen known project."
+  (interactive)
+  (let ((new-root (completing-read "PMI switch project: " (hash-table-keys pmi--var-projects))))
+    (read-file-name "Choose file to open: " new-root)))
+
 (defun pmi-project-add-configuration ()
   "Open the add-configuration wizard for the currently open project."
   (interactive)
