@@ -119,6 +119,14 @@
   (let* ((projecttype (pmi-project-type)))
     (gethash projecttype pmi--var-buildsystems)))
 
+(defun pmi-project-active-configuration ()
+  "Get the current project's active configuration."
+  (pmi-data-project-active-configuration (pmi-project)))
+
+(defun pmi-project-active-runconfiguration ()
+  "Get the current project's active runconfiguration (depends on its active configuration)."
+  (pmi-data-configuration-active-runconfiguration (pmi-project-active-configuration)))
+
 (defun pmi-project-info ()
   "Print some information about the project, to which the curent file belongs."
   (interactive)
