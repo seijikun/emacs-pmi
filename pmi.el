@@ -121,7 +121,10 @@
 
 (defun pmi-project-active-configuration ()
   "Get the current project's active configuration."
-  (pmi-data-project-active-configuration (pmi-project)))
+  (let* ((project (pmi-project))
+         (active-configname (pmi-data-project-active-configuration project))
+         (configurations (pmi-data-project-configurations project)))
+    (gethash active-configname configurations)))
 
 (defun pmi-project-active-runconfiguration ()
   "Get the current project's active runconfiguration (depends on its active configuration)."
@@ -169,8 +172,6 @@
     (when (equal active-config chosen-config)
       (pmi-project-select-configuration))))
 
-(defun pmi-project-configure ())				; run configure (cmake ..)
-
 (defun pmi-project-select-configuration ()
   "Switch current active configuration."
   (interactive)
@@ -179,8 +180,6 @@
          (config-key (completing-read "Choose configuration:" (hash-table-keys configs)))
          (chosen-config (gethash config-key configs)))
     (setf (pmi-data-project-active-configuration project) chosen-config)))
-
-(defun pmi-project-configure ())				; run configure (cmake ..)
 
 (defun pmi-project-select-runconfiguration ()
   "Select a runconfiguration for the active configuration of the active project."
@@ -192,8 +191,28 @@
          (chosen-runconfig (gethash runconfig-key runconfigs)))
     (setf (pmi-data-configuration-active-runconfiguration configuration) chosen-runconfig)))
 
-(defun pmi-project-build ())
-(defun pmi-project-run ())
+(defun pmi-project-configure ()
+  "Run the configure step for the active configuration of the current project. (Many modern buildsystems don't have one though)."
+  (interactive)
+  (let* ((project (pmi-project))
+         (buildsystem (pmi-project-buildsystem))
+         (active-configuration (pmi-project-active-configuration)))
+    (pmi--log-info "Launching Configure-Step for active project.")
+    (funcall (pmi-fntbl-buildsystem-init-configuration buildsystem) project active-configuration)))
+
+(defun pmi-project-build ()
+  "Build the active configuration of the current project."
+  (interactive)
+  (let* ((project (pmi-project))
+         (buildsystem (pmi-project-buildsystem))
+         (active-configuration (pmi-project-active-configuration)))
+    (pmi--log-info "Launching Build-Step for active project.")
+    (funcall (pmi-fntbl-buildsystem-build-configuration buildsystem) project active-configuration)))
+
+(defun pmi-project-run ()
+  "Run the active configuration's selected runconfiguration of the current project."
+  (interactive)
+  (message "TODO"))
 
 (file-name-directory (buffer-name (current-buffer)))
 ;; ################# Internal-API #################
